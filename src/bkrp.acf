@@ -1,0 +1,7 @@
+[
+    explicit_handle
+] 
+interface BackupKey
+{
+    [enable_allocate] BackuprKey();
+}

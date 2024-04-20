@@ -1,0 +1,15 @@
+# Bkrp library cmake configuration file
+#
+# the following variables are defined:
+#   BKRP_INCLUDE_DIR - location of the headers
+#   BKRP_LIBRARY_DIR - location of the library
+#   BKRP_LIBRARY     - bkrp library name
+
+if(${BKRP_IN_BUILD_TREE})  
+  include("${CMAKE_BINARY_DIR}/BkrpBuildTreeSettings.cmake")
+else()
+  set(BKRP_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR})
+  set(BKRP_LIBRARY_DIR ${CMAKE_INSTALL_LIBDIR})
+endif()
+
+set(BKRP_LIBRARY bkrpclient)
