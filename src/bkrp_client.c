@@ -60,16 +60,15 @@ int cli_credentials_set_client_gss_creds(
     enum credentials_obtained obtained,
     const char **error_string);
 
-uint32_t
+static uint32_t
 rpc_create_gss_auth_identity(
     const char *user,
     const char *domain,
     gss_cred_id_t *rpc_identity_h)
 {
-    OM_uint32 min = 0;
-    OM_uint32 maj = 0;
-    gss_OID_desc spnego_mech_oid =            
-        {GSSAPI_MECH_SPNEGO_LEN, (void *) GSSAPI_MECH_SPNEGO};
+    OM_uint32 minor = 0;
+    OM_uint32 major = 0;
+    gss_OID_desc spnego_mech_oid = {GSSAPI_MECH_SPNEGO_LEN, (void *) GSSAPI_MECH_SPNEGO};
     gss_buffer_desc name_buf = {0};
     gss_name_t gss_name_buf = NULL;
     size_t upn_len = 0;
@@ -84,8 +83,8 @@ rpc_create_gss_auth_identity(
         upn = calloc(upn_len, sizeof(char));
         if (!upn)
         {
-            maj = GSS_S_FAILURE;
-            min = 0;
+            major = GSS_S_FAILURE;
+            minor = 0;
         }
         snprintf(upn, upn_len, "%s@%s", user, domain);
     }
@@ -95,12 +94,12 @@ rpc_create_gss_auth_identity(
     }
     name_buf.value = upn;
     name_buf.length = strlen(name_buf.value);
-    maj = gss_import_name(
-              &min,
+    major = gss_import_name(
+              &minor,
               &name_buf,
               GSS_C_NT_USER_NAME,
               &gss_name_buf);
-    if (maj)
+    if (major)
     {
         goto error;
     }
@@ -108,8 +107,8 @@ rpc_create_gss_auth_identity(
     desired_mechs.count = 1;
     desired_mechs.elements = mech_oid_array;
     desired_mechs.elements[0] = spnego_mech_oid;
-    maj = gss_acquire_cred(
-              &min,
+    major = gss_acquire_cred(
+              &minor,
               gss_name_buf,
               0,
               &desired_mechs,
@@ -117,7 +116,7 @@ rpc_create_gss_auth_identity(
               &cred_handle,
               NULL,
               NULL);
-    if (maj)
+    if (major)
     {
         goto error;
     }
@@ -125,9 +124,9 @@ rpc_create_gss_auth_identity(
     *rpc_identity_h = cred_handle;
 
 error:
-    if (maj)
+    if (major)
     {
-        maj = min ? min : maj;
+        major = minor ? minor : major;
     }
 
     if (upn != user)
@@ -136,10 +135,10 @@ error:
     }
     if (gss_name_buf)
     {
-        gss_release_name(&min, &gss_name_buf);
+        gss_release_name(&minor, &gss_name_buf);
     }
 
-    return maj;
+    return major;
 }
 
 NTSTATUS
