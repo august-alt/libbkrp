@@ -44,7 +44,7 @@ add_subdirectory(examples)
 
 add_subdirectory(src)
 
-option(BKRP_BUILD_TESTS "Build bkrp tests." OFF)
+option(BKRP_BUILD_TESTS "Build bkrp tests." ON)
 option(BKRP_BUILD_EXAMPLES "Build bkrp examples." ON)
 
 enable_testing()
