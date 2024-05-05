@@ -25,116 +25,135 @@
 
 extern "C"
 {
-#include <dce/dcethread.h>
 #include <bkrp/bkrp_client.h>
-#include <bkrp/bkrp.h>
+#include <bkrp/ndr_bkrp_c.h>
 }
-
-const char* PROTOCOL_TCP   = "ncacn_ip_tcp";
-const int DEFAULT_RPC_PORT = 135;
-
-GUID BACKUPKEY_BACKUP_GUID = { .Data1 = 0x7F752B10, .Data2 = 0x178E, .Data3 = 0x11D1, .Data4 = { 0xAB, 0x8F, 0x00, 0x80, 0x5F, 0x14, 0xDB, 0x40 } };
-GUID BACKUPKEY_RESTORE_GUID_WIN2K = { .Data1 = 0x7FE94D50, .Data2 = 0x178E, .Data3 = 0x11D1, .Data4 = { 0xAB, 0x8F, 0x00, 0x80, 0x5F, 0x14, 0xDB, 0x40 } };
-GUID BACKUPKEY_RETRIEVE_BACKUP_KEY_GUID = { .Data1 = 0x018FF48A, .Data2 = 0xEABA, .Data3 = 0x40C6, .Data4 = { 0x8F, 0x6D, 0x72, 0x37, 0x02, 0x40, 0xE9, 0x67 } };
-GUID BACKUPKEY_RESTORE_GUID = { .Data1 = 0x47270C64, .Data2 = 0x2FC7, .Data3 = 0x499B, .Data4 = { 0xAC, 0x5B, 0x0E, 0x37, 0xCD, 0xCE, 0x89, 0x9A } };
 
 class RpcWrapper
 {
 private:
-    handle_t hBindingHandle;
-    DWORD status;
+    TALLOC_CTX* mem_ctx;
+    dcerpc_pipe* pipe;
 
 public:
-    RpcWrapper(const std::string &host, int port)
-        : hBindingHandle(NULL),
-          status(0)
+    RpcWrapper(const std::string &host, const std::string& domain, const std::string& username)
+        : mem_ctx(nullptr),
+          pipe(nullptr)
     {
-        if (get_client_rpc_binding(&hBindingHandle,
-                                   BackupKey_v1_0_c_ifspec,
+        mem_ctx = talloc_named(NULL, 0, "create_rpc_client");
+
+        if (!NT_STATUS_IS_OK(get_client_rpc_binding(mem_ctx,
+                                   &pipe,
                                    const_cast<char*>(host.c_str()),
-                                   const_cast<char*>(PROTOCOL_TCP),
-                                   const_cast<char*>(std::to_string(port).c_str())) != DCE_ERR_OK)
+                                   const_cast<char*>(domain.c_str()),
+                                   const_cast<char*>(username.c_str()))))
         {
             std::cout << "Couldnt obtain RPC server binding. exiting.\n" << std::endl;
-            return;
-        }
-
-        status = create_rpc_identity(const_cast<char*>(host.c_str()), hBindingHandle);
-        if (status)
-        {
-            std::cout << "Couldn't set auth info" << status << " exiting.\n";
             return;
         }
     }
 
     ~RpcWrapper()
     {
-        if (hBindingHandle)
-        {
-            rpc_binding_free(&hBindingHandle, &status);
-        }
+        TALLOC_FREE(pipe);
+        TALLOC_FREE(mem_ctx);
     }
 
-    DWORD BackupKey(GUID &pguidActionAgent,
-                void *pDataIn,
-                DWORD cbDataIn,
-                idl_byte **ppDataOut,
-                DWORD *pcbDataOut)
+    uint32_t BackupKey(GUID &pguidActionAgent,
+                uint8_t *pDataIn,
+                uint32_t cbDataIn,
+                uint8_t **ppDataOut,
+                uint32_t *pcbDataOut)
     {
-        dcethread_exc *exc;
-        DCETHREAD_TRY
-        {
-          exc = NULL;
-          (status) = BackuprKey(hBindingHandle, &pguidActionAgent, (idl_byte*)pDataIn, cbDataIn, ppDataOut, pcbDataOut, 0);
-        }
-        DCETHREAD_CATCH_ALL(exc)
-        {
-          (status) = dcethread_exc_getstatus(exc);
-        }
-        DCETHREAD_ENDTRY
+        uint32_t result = 0;
+        dcerpc_bkrp_BackupKey(
+                          pipe->binding_handle,
+                          mem_ctx,
+                          &pguidActionAgent,
+                          pDataIn,
+                          cbDataIn,
+                          ppDataOut,
+                          pcbDataOut,
+                          0,
+                          &result);
 
-        return status;
+        return result;
     }
 };
 
 int main(int argc, char **argv)
 {
     std::vector<std::string> args(argv, argv+argc);
-    if(args.size() < 2)
+    if(args.size() < 4)
     {
-        std::cerr << "Usage: " << args[0] << " [host] <port>" << std::endl;
+        std::cerr << "Usage: " << args[0] << " [host] [domain] [username]" << std::endl;
         return EXIT_FAILURE;
     }
 
     std::string hostname = args[1];
-    unsigned int port = 135;
+    std::string domain = args[2];
+    std::string username = args[3];
 
-    if (args.size() >= 3)
-    {
-        try
-        {
-            port = std::stoi(args[2]);
-        }
-        catch(const std::invalid_argument& e)
-        {
-            std::cerr << "Error: Invalid port number. " << e.what() << std::endl;
-            return EXIT_FAILURE;
-        }
-        catch(const std::out_of_range& e)
-        {
-            std::cerr << "Error: Port number out of range. " << e.what() << std::endl;
-            return EXIT_FAILURE;
-        }
+    std::unique_ptr<RpcWrapper> wrapper { new  RpcWrapper(hostname, domain, username) };
+
+    uint8_t pDataIn[] = "cleartext";
+    uint32_t cbDataIn = sizeof(pDataIn);
+    uint8_t *ppDataOut = 0;
+    uint32_t pcbDataOut = 0;
+    GUID guid;
+    NTSTATUS status;
+
+    status = GUID_from_string(BACKUPKEY_BACKUP_GUID, &guid);
+
+    if (!NT_STATUS_IS_OK(status)) {
+        printf("Failed to convert guid: %u\n", status.v);
+        exit(EXIT_FAILURE);
     }
 
-    std::unique_ptr<RpcWrapper> wrapper { new  RpcWrapper(hostname, port) };
+    uint32_t result = 0;
+    wrapper->BackupKey(guid,
+                       pDataIn,
+                       cbDataIn,
+                       &ppDataOut,
+                       &pcbDataOut);
 
-    wchar_t pDataIn[] = L"cleartext";
-    DWORD cbDataIn = sizeof(pDataIn);
-    idl_byte *ppDataOut = 0;
-    DWORD pcbDataOut = 0;
+    if (result)
+    {
+        printf("Failed to backup key! %d\n", result);
+        exit(EXIT_FAILURE);
+    }
 
-    wrapper->BackupKey(BACKUPKEY_RETRIEVE_BACKUP_KEY_GUID, pDataIn, cbDataIn, &ppDataOut, &pcbDataOut);
+    status = GUID_from_string(BACKUPKEY_RESTORE_GUID, &guid);
+
+    if (!NT_STATUS_IS_OK(status)) {
+        printf("Failed to convert guid: %u\n", status.v);
+        exit(EXIT_FAILURE);
+    }
+
+    uint8_t *ppDataOut2 = 0;
+    uint32_t pcbDataOut2 = 0;
+
+    wrapper->BackupKey(guid,
+                       ppDataOut,
+                       pcbDataOut,
+                       &ppDataOut2,
+                       &pcbDataOut2);
+
+    if (result)
+    {
+        printf("Failed to restore key! %d\n", result);
+        exit(EXIT_FAILURE);
+    }
+
+    if (cbDataIn != pcbDataOut2)
+    {
+        printf("Backuped and restored keys do not match!%s, %s\n", ppDataOut2, pDataIn);
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        printf("Backuped and restored keys match! %s, %s\n", ppDataOut2, pDataIn);
+    }
 
     return 0;
 }
