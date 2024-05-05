@@ -44,7 +44,7 @@ set(bkrp_client_GEN_SOURCES
 )
 
 # Generated files should be excluded from the build
-#set_source_files_properties(${bkrp_client_GEN_SOURCES} ${bkrp_client_GEN_HEADERS} ${bkrp_local_client_GEN_SOURCES} PROPERTIES GENERATED TRUE)
+set_source_files_properties(${bkrp_client_GEN_SOURCES} ${bkrp_client_GEN_HEADERS} ${bkrp_local_client_GEN_SOURCES} PROPERTIES GENERATED TRUE)
 
 # IDL compilation rule
 set(IDL_EXECUTABLE ${IDL_COMPILER})
