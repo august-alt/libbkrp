@@ -7,6 +7,7 @@ include_directories ("${CMAKE_BINARY_DIR}/src")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(samba_HEADERS
+    bkrp.acf
     bkrp.idl
     idl_types.h
     misc.idl
