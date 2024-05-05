@@ -7,8 +7,6 @@ include_directories ("${CMAKE_BINARY_DIR}/src")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(samba_HEADERS
-    bkrp.acf
-    bkrp.idl
     idl_types.h
     misc.idl
     security.idl
@@ -16,6 +14,8 @@ set(samba_HEADERS
 
 # Headers
 set(bkrp_client_HEADERS
+    bkrp.acf
+    bkrp.idl
     bkrp_client.h
 )
 
@@ -52,7 +52,7 @@ set(IDL_EXECUTABLE ${IDL_COMPILER})
 add_custom_target(
     generated_files
     ALL
-    COMMAND ${IDL_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/bkrp.idl --client --header --ndr-parser
+    COMMAND ${IDL_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/bkrp.idl --client --header --ndr-parser --outputdir=${CMAKE_CURRENT_SOURCE_DIR}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     VERBATIM
 )
