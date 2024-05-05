@@ -36,6 +36,7 @@ RUN apt-get update \
     libtalloc-devel \
     libsasl2-devel \
     libconfig-devel \
+    libkrb5-devel \
     samba-devel \
     samba-common-libs \
     samba-pidl \

@@ -11,7 +11,7 @@ Group: Development
 Url: https://github.com/august-alt/libbkrp
 
 BuildRequires: rpm-macros-cmake cmake cmake-modules gcc-c++
-BuildRequires: samba-devel samba-common-libs samba-pidl
+BuildRequires: samba-devel samba-common-libs samba-pidl libkrb5-devel
 BuildRequires: doxygen
 
 Requires: cmake
