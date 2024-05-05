@@ -21,40 +21,31 @@
 #ifndef BKRP_CLIENT_H
 #define BKRP_CLIENT_H
 
-#include <bkrp/bkrp.h>
-
-#include "bkrp_client_error.h"
-
-/**
-    @brief get_client_rpc_binding Gets a binding handle to an RPC interface.
-    @param[out] binding_handle Output parameter to receive the binding handle.
-    @param[in] interface_spec DCE Interface handle for service.
-    @param[in] hostname Internet hostname where server lives.
-    @param[in] protocol Protocol such as "ncacn_ip_tcp".
-    @param[in] endpoint Optional endpoint.
-    @return
-       - DCE_ERR_OK - on successful bind.
-       - DCE_ERR_* - on error.
-*/
-dce_err
-get_client_rpc_binding(
-    rpc_binding_handle_t * binding_handle,
-    rpc_if_handle_t interface_spec,
-    char * hostname,
-    char * protocol,
-    char * endpoint);
+#include <dcerpc.h>
+#include <talloc.h>
+#include <ndr.h>
 
 /**
- * @brief create_rpc_identity Sets rpc to use kerberos for authentication and packet level security.
- * @param hostname Internet hostname where server lives.
- * @param rpc_binding_h the binding handle.
+ * @brief get_client_rpc_binding - Creates RPC binding.
+ * @param mem_ctx                - TALLOC memory context.
+ * @param pipe                   - DCERPC pipe.
+ * @param hostname               - FQDN or IP of domain controller to connect to.
+ * @param domain                 - domain name.
+ * @param username               - user name.
  * @return
- *      - 0 - on success.
- *      - code of the error - on error.
+ *          - NT_STATUS_OK - on success.
+ *          - NT_STATUS_RPC_BINDING_HAS_NO_AUTH - if unable to create gss auth identity.
+ *          - NT_STATUS_ACCESS_DENIED - if unable to set client identity.
+ *          - NT_STATUS_UNSUCCESSFUL - if unable to set kerberos state.
+ *          - NT_STATUS_PRC* - if unable to establish RPC connection.
  */
-int
-create_rpc_identity(
-    char * hostname,
-    rpc_binding_handle_t rpc_binding_h);
+NTSTATUS
+get_client_rpc_binding(
+    TALLOC_CTX *mem_ctx,
+    struct dcerpc_pipe **pipe,
+    char * binding_string,
+    char * domain,
+    char * username
+);
 
 #endif//BKRP_CLIENT_H

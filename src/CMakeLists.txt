@@ -6,12 +6,21 @@ include_directories ("${CMAKE_BINARY_DIR}/src")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+set(samba_HEADERS
+    bkrp.idl
+    idl_types.h
+    misc.idl
+    security.idl
+)
+
 # Headers
 set(bkrp_client_HEADERS
     bkrp_client.h
-    bkrp_client_error.h
-    bkrp.idl
-    bkrp.acf
+)
+
+add_custom_target(ms-bkrp-idl SOURCES
+    ${bkrp_client_HEADERS}
+    ${samba_HEADERS}
 )
 
 # Sources
@@ -24,14 +33,17 @@ set(bkrp_client_SOURCES ${bkrp_client_SOURCES} ${bkrp_client_HEADERS})
 # Generated files
 set(bkrp_client_GEN_HEADERS
     bkrp.h
+    ndr_bkrp.h
+    ndr_bkrp_c.h
 )
 
 set(bkrp_client_GEN_SOURCES
-    bkrp_cstub.c
+    ndr_bkrp_c.c
+    ndr_bkrp.c
 )
 
 # Generated files should be excluded from the build
-set_source_files_properties(${bkrp_client_GEN_SOURCES} ${bkrp_client_GEN_HEADERS} ${bkrp_local_client_GEN_SOURCES} PROPERTIES GENERATED TRUE)
+#set_source_files_properties(${bkrp_client_GEN_SOURCES} ${bkrp_client_GEN_HEADERS} ${bkrp_local_client_GEN_SOURCES} PROPERTIES GENERATED TRUE)
 
 # IDL compilation rule
 set(IDL_EXECUTABLE ${IDL_COMPILER})
@@ -39,8 +51,7 @@ set(IDL_EXECUTABLE ${IDL_COMPILER})
 add_custom_target(
     generated_files
     ALL
-    COMMAND ${IDL_EXECUTABLE} -keep c_source ${CMAKE_CURRENT_SOURCE_DIR}/bkrp.idl
-    DEPENDS ${bkrp_client_HEADERS}
+    COMMAND ${IDL_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/bkrp.idl --client --header --ndr-parser
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     VERBATIM
 )
@@ -53,25 +64,67 @@ foreach(FILE ${bkrp_client_GEN_SOURCES})
     set(bkrp_local_client_GEN_SOURCES ${bkrp_local_client_GEN_SOURCES} ${SOURCE})
 endforeach()
 
+# Dot in include path is intentional to avoid escaping additional slash
+add_custom_target(
+    remove_include
+    ALL
+    COMMAND sed -i s/\#include\ \<gen_ndr.ndr\_security\.h\>//g ndr_bkrp.c
+    DEPENDS generated_files
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    VERBATIM
+)
+
 # Libraries
-find_library(dcerpc dcerpc)
-find_library(uuid uuid)
-find_library(gssapi_krb5 gssapi_krb5)
-find_library(krb5 krb5)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(Ndr REQUIRED IMPORTED_TARGET ndr)
+pkg_check_modules(Tevent REQUIRED IMPORTED_TARGET tevent)
+pkg_check_modules(DCERPC REQUIRED IMPORTED_TARGET dcerpc)
+pkg_check_modules(SambaCredentials REQUIRED IMPORTED_TARGET samba-credentials)
+pkg_check_modules(SambaHostconfig REQUIRED IMPORTED_TARGET samba-hostconfig)
+pkg_check_modules(SambaUtil REQUIRED IMPORTED_TARGET samba-util)
+pkg_check_modules(Krb5GssAPI REQUIRED IMPORTED_TARGET krb5-gssapi)
+find_library(SAMBA4_SECURITY
+    NAMES
+        "libsamba-security-samba4.so"
+    HINTS
+        "/usr/lib64/samba/"
+        "/usr/lib/"
+)
+find_library(TEVENT_UTIL
+    NAMES
+        "libtevent-util.so"
+    HINTS
+        "/usr/lib64/samba/"
+        "/usr/lib/"
+)
+find_library(SAMBA4_NDR
+    NAMES
+        "libndr-samba4.so"
+    HINTS
+        "/usr/lib64/samba/"
+        "/usr/lib/"
+)
 
 # Target
-add_library(${LIBRARY_NAME} SHARED ${bkrp_client_SOURCES} ${bkrp_local_client_GEN_SOURCES})
+add_library(${LIBRARY_NAME} SHARED ${bkrp_client_SOURCES} ${bkrp_client_GEN_HEADERS} ${bkrp_local_client_GEN_SOURCES})
 
 # Link libraries
-target_link_libraries(${LIBRARY_NAME}
-    ${dcerpc}
-    ${uuid}
-    ${gssapi_krb5}
-    ${krb5}
+target_link_libraries(${LIBRARY_NAME} PUBLIC
+    PkgConfig::Ndr
+    PkgConfig::Tevent
+    PkgConfig::DCERPC
+    PkgConfig::SambaCredentials
+    PkgConfig::SambaHostconfig
+    ${SAMBA4_SECURITY}
+    ${TEVENT_UTIL}
+    ${SAMBA4_NDR}
+    PkgConfig::SambaUtil
+    PkgConfig::Krb5GssAPI
 )
 
 add_dependencies(${LIBRARY_NAME}
     generated_files
+    remove_include
 )
 
 # Installation
