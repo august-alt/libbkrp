@@ -3,7 +3,7 @@ set(IDL_COMPILER "")
 
 # Find the IDL compiler on the system
 find_program(IDL_COMPILER_EXECUTABLE
-  NAMES idl dceidl midl
+  NAMES pidl
   PATHS /usr/bin /usr/local/bin
   DOC "The IDL compiler executable"
 )
