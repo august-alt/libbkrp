@@ -38,6 +38,7 @@ RUN apt-get update \
     libconfig-devel \
     samba-devel \
     samba-common-libs \
+    samba-pidl \
     glib2-devel \
     cgreen \
     ragel \
