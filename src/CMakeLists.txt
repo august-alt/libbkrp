@@ -92,9 +92,6 @@ find_library(SAMBA4_SECURITY
         "/usr/lib64/samba/"
         "/usr/lib/"
 )
-if(NOT DEFINED ${SAMBA4_SECURITY})
-    message(FATAL_ERROR "Samba security library was not found!")
-endif()
 find_library(TEVENT_UTIL
     NAMES
         "libtevent-util.so"
@@ -102,9 +99,6 @@ find_library(TEVENT_UTIL
         "/usr/lib64/samba/"
         "/usr/lib/"
 )
-if(NOT DEFINED ${TEVENT_UTIL})
-    message(FATAL_ERROR "Tevent util library was not found!")
-endif()
 find_library(SAMBA4_NDR
     NAMES
         "libndr-samba4.so"
@@ -113,10 +107,6 @@ find_library(SAMBA4_NDR
         "/usr/lib64/samba/"
         "/usr/lib/"
 )
-if(NOT DEFINED ${SAMBA4_NDR})
-    message(FATAL_ERROR "Samba NDR library was not found!")
-endif()
-
 
 # Target
 add_library(${LIBRARY_NAME} SHARED ${bkrp_client_SOURCES} ${bkrp_client_GEN_HEADERS} ${bkrp_local_client_GEN_SOURCES})
