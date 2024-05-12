@@ -39,7 +39,7 @@ Client library for MS-BKRP
 %_includedir/bkrp/*.idl
 %_includedir/bkrp/*.h
 
-%_libdir/libbkrpclient.so
+%_libdir/libbkrpclient.so*
 
 %_libdir/bkrp/BkrpConfig.cmake
 
