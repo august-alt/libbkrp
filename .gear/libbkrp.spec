@@ -21,6 +21,15 @@ Source0: %name-%version.tar
 %description
 Client library for MS-BKRP
 
+%package devel
+Summary: MS-BKRP Libraries and Header Files
+Group: Development/C
+Requires: %name = %version-%release
+
+%description devel
+%name-devel contains the libraries and header files needed to
+develop programs which make use of %name
+
 %prep
 %setup -q
 
@@ -32,6 +41,9 @@ Client library for MS-BKRP
 %cmakeinstall_std
 
 %files
+%_libdir/libbkrpclient.so.*
+
+%files devel
 %doc README.md
 %doc INSTALL.md
 
