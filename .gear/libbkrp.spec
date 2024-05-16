@@ -51,7 +51,7 @@ develop programs which make use of %name
 %_includedir/bkrp/*.idl
 %_includedir/bkrp/*.h
 
-%_libdir/libbkrpclient.so*
+%_libdir/libbkrpclient.so
 
 %_libdir/bkrp/BkrpConfig.cmake
 
